@@ -2,6 +2,8 @@
 #define SHL211_OB_DETAIL_STRONG_TYPE_HPP
 
 #include <type_traits>
+#include <compare>
+#include <cstddef>
 
 namespace shl211::ob::detail {
 
@@ -11,9 +13,7 @@ template <typename Derived> struct Comparable;
 
 //StrongType defineiiton
 template <typename Tag>
-concept StrongTag = 
-    std::is_empty_v<Tag> &&
-    std::is_trivial_v<Tag>;
+concept StrongTag = std::is_empty_v<Tag>;
 
 template <typename T, StrongTag Tag, template<typename> class... Mixins>
 class StrongType 
@@ -22,6 +22,7 @@ class StrongType
 
 public:
     using This = StrongType<T, Tag, Mixins...>;
+    using UnderlyingType = T;
 
     constexpr explicit StrongType(T v) noexcept : value_(v) {}
     constexpr explicit operator T() const noexcept { return value_; }
@@ -77,6 +78,20 @@ struct Comparable {
     }
 };
 
+
+}
+namespace std {
+    template<
+        typename T,
+        shl211::ob::detail::StrongTag Tag,
+        template<typename> class... Mixins
+    >
+        requires requires (const T& v) { std::hash<T>{}(v); }
+    struct hash<shl211::ob::detail::StrongType<T, Tag, Mixins...>> {
+        size_t operator()(const auto& v) const noexcept {
+            return std::hash<T>{}(v.get());
+        }
+    };
 }
 
 

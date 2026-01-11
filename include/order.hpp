@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <functional>
 
 #include "detail/strong_type.hpp"
 
@@ -79,6 +80,7 @@ public:
         remaining_ -= matched;
         return matched;
     }
+    void changeQuantity(Quantity newQty) noexcept { remaining_ = newQty; }
 
 private:
     Order(OrderId id, Side side, OrderType type, TimeInForce tif, std::optional<Price> price, Quantity quantity)
