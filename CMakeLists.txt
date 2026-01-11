@@ -32,3 +32,9 @@ if(BUILD_TESTS)
 
     add_subdirectory(tests)
 endif()
+
+option(BUILD_BENCH "Build benchmarks" OFF)
+
+if(BUILD_BENCH)
+    add_subdirectory(benchmark)
+endif()
