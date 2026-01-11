@@ -59,6 +59,36 @@ struct Additive {
         self.ref() += other.get();
         return self;
     }
+
+// Prefix increment: ++obj
+    constexpr Derived& operator++() noexcept {
+        auto& self = static_cast<Derived&>(*this);
+        ++self.ref();
+        return self;
+    }
+
+    // Postfix increment: obj++
+    constexpr Derived operator++(int) noexcept {
+        auto& self = static_cast<Derived&>(*this);
+        Derived temp = self;
+        ++self.ref();
+        return temp;
+    }
+
+    // Prefix decrement: --obj
+    constexpr Derived& operator--() noexcept {
+        auto& self = static_cast<Derived&>(*this);
+        --self.ref();
+        return self;
+    }
+
+    // Postfix decrement: obj--
+    constexpr Derived operator--(int) noexcept {
+        auto& self = static_cast<Derived&>(*this);
+        Derived temp = self;
+        --self.ref();
+        return temp;
+    }
 };
 
 template <typename Derived>
