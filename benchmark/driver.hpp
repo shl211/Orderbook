@@ -41,22 +41,22 @@ public:
         for(size_t i = 0; i < iterations_; ++i) {
             auto& e = events[warmup_ + i];
 
-            auto t0 = bench::rdtsc();
+            auto t0 = bench::steady_clock();
             applyEvent(book, e);
-            auto t1 = bench::rdtsc();
+            auto t1 = bench::steady_clock();
 
-            latencies_.push_back(t1 - t0);
+            latencies_.push_back(static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count()));
         }
     }
 
     void report() {
         auto p = computePercentiles(latencies_);
 
-        std::cout << std::format("p50: {} cycles\n", p.p50);
-        std::cout << std::format("p90: {} cycles\n", p.p90);
-        std::cout << std::format("p99: {} cycles\n", p.p99);
-        std::cout << std::format("p999: {} cycles\n", p.p999);
-        std::cout << std::format("max: {} cycles\n", p.max);
+        std::cout << std::format("p50: {} ns\n", p.p50);
+        std::cout << std::format("p90: {} ns\n", p.p90);
+        std::cout << std::format("p99: {} ns\n", p.p99);
+        std::cout << std::format("p999: {} ns\n", p.p999);
+        std::cout << std::format("max: {} ns\n", p.max);
     }
 
     void exportCsv(const std::string& filename) const {

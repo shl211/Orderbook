@@ -11,7 +11,11 @@ inline uint64_t rdtsc() {
     return __rdtscp(&aux);
 }
 
-double measureTscGHz() {
+inline auto steady_clock() {
+    return std::chrono::steady_clock::now();
+}
+
+inline double measureTscGHz() {
     using namespace std::chrono;
 
     uint64_t t0 = __rdtscp(nullptr);
@@ -27,6 +31,11 @@ double measureTscGHz() {
 
     return (cycles / seconds) / 1e9; // GHz
 }
+
+
+
+
+
 
 }
 
