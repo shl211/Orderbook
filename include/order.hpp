@@ -93,13 +93,13 @@ private:
         remaining_( quantity )
             {}
 
-    const OrderId id_;
-    const Side side_;
-    const OrderType type_;
-    const TimeInForce tif_;
-    const std::optional<Price> price_;
+    OrderId id_;
+    Side side_;
+    OrderType type_;
+    TimeInForce tif_;
+    std::optional<Price> price_;
 
-    const Quantity initial_;
+    Quantity initial_;
     Quantity remaining_;
 };
 }

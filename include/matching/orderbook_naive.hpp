@@ -12,6 +12,7 @@
 #include "order.hpp"
 #include "matching/orderbook_utils.hpp"
 #include "matching/orderbook_concept.hpp"
+#include "detail/matching_orderbook_utils.hpp"
 
 namespace shl211::ob {
 
@@ -74,33 +75,7 @@ static_assert(MatchingOrderBook<MatchingOrderBookNaive>);
 /* -------------------------------------------------------------- */
 /*  IMPLEMENTATION  */
 
-namespace detail {
-    constexpr Price MIN_PRICE{ 0 };
-    constexpr Price MAX_PRICE{ std::numeric_limits<Price::UnderlyingType>::max() };
-
-    inline Price processOrderPrice(const Order& order) {
-        auto priceOpt = order.getPrice();
-
-        if(priceOpt.has_value()) 
-            return priceOpt.value();
-
-        Side side = order.getSide();
-        return side == Side::Buy ? MAX_PRICE : MIN_PRICE;
-    }
-
-    inline bool shouldAddToBook(const Order& order) {
-        const OrderType type = order.getOrderType();
-        const TimeInForce tif = order.getTimeInForce();
-        const Quantity remainingQty = order.getRemainingQuantity();
-
-        const bool hasRemaining = remainingQty > Quantity{0}; 
-        const bool canSitOnBook = order.getTimeInForce() == TimeInForce::GTC; 
-        
-        return hasRemaining && canSitOnBook;
-    }
-}
-
-bool MatchingOrderBookNaive::canMatch(const Order& order) const noexcept {
+inline bool MatchingOrderBookNaive::canMatch(const Order& order) const noexcept {
     const Price orderPrice = detail::processOrderPrice(order);
     const Quantity orderSize = order.getRemainingQuantity();
     const TimeInForce orderTif = order.getTimeInForce();
@@ -138,7 +113,7 @@ bool MatchingOrderBookNaive::canMatch(const Order& order) const noexcept {
     return true;
 }
 
-MatchingOrderBookNaive::MatchResult MatchingOrderBookNaive::match(const Order& order) noexcept {
+inline MatchingOrderBookNaive::MatchResult MatchingOrderBookNaive::match(const Order& order) noexcept {
     const Side side = order.getSide();
     const Price price = detail::processOrderPrice(order);
     const OrderId id = order.getOrderId();
