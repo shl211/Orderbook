@@ -46,6 +46,21 @@ def analyse_latency_data(filenames: list[Path]) -> None:
     plt.grid(True, which="both", ls="-", alpha=0.2)
     
     plt.tight_layout()
+
+    #3. Create a secondary y-axis for CDFs
+    ax1 = plt.gca()
+    ax2 = ax1.twinx()
+
+    # Plot CDFs
+    for data, label in all_data:
+        sorted_data = np.sort(data)
+        cdf = np.linspace(0, 1, len(sorted_data))
+        ax2.plot(sorted_data, cdf, label=f"{label} CDF", linewidth=2)
+
+    ax2.set_ylabel("CDF")
+    ax2.set_ylim(0, 1)
+    ax1.legend(loc="upper left")
+    ax2.legend(loc="lower right")
     plt.show()
 
 if __name__ == "__main__":
