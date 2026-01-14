@@ -1,5 +1,5 @@
-#ifndef SHL211_OB_MATCHING_ORDERBOOK_NAIVE_HPP
-#define SHL211_OB_MATCHING_ORDERBOOK_NAIVE_HPP
+#ifndef SHL211_OB_MATCHING_ORDERBOOK_LIST_HPP
+#define SHL211_OB_MATCHING_ORDERBOOK_LIST_HPP
 
 #include <optional>
 #include <vector>
@@ -16,7 +16,7 @@
 
 namespace shl211::ob {
 
-class MatchingOrderBookNaive {
+class MatchingOrderBookListImpl {
 public:
     [[nodiscard]] AddResult add(Order order) noexcept;
     [[nodiscard]] bool cancel(OrderId id) noexcept;
@@ -70,12 +70,12 @@ private:
 
 };
 
-static_assert(MatchingOrderBook<MatchingOrderBookNaive>);
+static_assert(MatchingOrderBook<MatchingOrderBookListImpl>);
 
 /* -------------------------------------------------------------- */
 /*  IMPLEMENTATION  */
 
-inline bool MatchingOrderBookNaive::canMatch(const Order& order) const noexcept {
+inline bool MatchingOrderBookListImpl::canMatch(const Order& order) const noexcept {
     const Price orderPrice = detail::processOrderPrice(order);
     const Quantity orderSize = order.getRemainingQuantity();
     const TimeInForce orderTif = order.getTimeInForce();
@@ -113,7 +113,7 @@ inline bool MatchingOrderBookNaive::canMatch(const Order& order) const noexcept 
     return true;
 }
 
-inline MatchingOrderBookNaive::MatchResult MatchingOrderBookNaive::match(const Order& order) noexcept {
+inline MatchingOrderBookListImpl::MatchResult MatchingOrderBookListImpl::match(const Order& order) noexcept {
     const Side side = order.getSide();
     const Price price = detail::processOrderPrice(order);
     const OrderId id = order.getOrderId();
@@ -170,14 +170,14 @@ inline MatchingOrderBookNaive::MatchResult MatchingOrderBookNaive::match(const O
     Order remainingOrder{ order };
     remainingOrder.applyFill(filledQty);
 
-    return MatchingOrderBookNaive::MatchResult{
+    return MatchingOrderBookListImpl::MatchResult{
         .matches = std::move(matches),
         .filledAmount = filledQty,
         .remainingOrder = std::move(remainingOrder)
     };
 }
 
-bool MatchingOrderBookNaive::cancelOrderHelper(OrderId id, bool subtractLiquidity) {
+bool MatchingOrderBookListImpl::cancelOrderHelper(OrderId id, bool subtractLiquidity) {
     auto it = orderLocation_.find(id);
     if(it == orderLocation_.end()) {
         return false;
@@ -216,7 +216,7 @@ bool MatchingOrderBookNaive::cancelOrderHelper(OrderId id, bool subtractLiquidit
     return static_cast<bool>(orderLocation_.erase(id));
 }
 
-inline AddResult MatchingOrderBookNaive::add(Order order) noexcept {
+inline AddResult MatchingOrderBookListImpl::add(Order order) noexcept {
     AddResult result;
 
     if(canMatch(order)) {
@@ -252,11 +252,11 @@ inline AddResult MatchingOrderBookNaive::add(Order order) noexcept {
     return result;
 }
 
-inline bool MatchingOrderBookNaive::cancel(OrderId id) noexcept {
+inline bool MatchingOrderBookListImpl::cancel(OrderId id) noexcept {
     return cancelOrderHelper(id, true);
 }
 
-inline bool MatchingOrderBookNaive::modify(OrderId id, Quantity newQty) noexcept {
+inline bool MatchingOrderBookListImpl::modify(OrderId id, Quantity newQty) noexcept {
     auto it = orderLocation_.find(id);
     if(it == orderLocation_.end()) {
         return false;
@@ -272,7 +272,7 @@ inline bool MatchingOrderBookNaive::modify(OrderId id, Quantity newQty) noexcept
     return true;
 }
 
-inline bool MatchingOrderBookNaive::modify(OrderId id, Quantity newQty, Price newPrice) noexcept {
+inline bool MatchingOrderBookListImpl::modify(OrderId id, Quantity newQty, Price newPrice) noexcept {
     auto it = orderLocation_.find(id);
     if (it == orderLocation_.end())
         return false;
@@ -295,28 +295,28 @@ inline bool MatchingOrderBookNaive::modify(OrderId id, Quantity newQty, Price ne
 }
 
 
-inline std::optional<Price> MatchingOrderBookNaive::bestBid() const noexcept {
+inline std::optional<Price> MatchingOrderBookListImpl::bestBid() const noexcept {
     if(bids_.empty())
         return std::nullopt;
 
     return bids_.begin()->first;
 }
 
-inline std::optional<Price> MatchingOrderBookNaive::bestAsk() const noexcept {
+inline std::optional<Price> MatchingOrderBookListImpl::bestAsk() const noexcept {
     if(asks_.empty())
         return std::nullopt;
     
     return asks_.begin()->first;
 }
 
-inline bool MatchingOrderBookNaive::empty() const noexcept {
+inline bool MatchingOrderBookListImpl::empty() const noexcept {
     return orderLocation_.empty();
 }
 
-inline std::vector<MatchingOrderBookNaive::Level> MatchingOrderBookNaive::bids(std::size_t depth) const noexcept {
+inline std::vector<MatchingOrderBookListImpl::Level> MatchingOrderBookListImpl::bids(std::size_t depth) const noexcept {
     std::size_t levels = std::min(depth, bids_.size());
     
-    std::vector<MatchingOrderBookNaive::Level> snapshot;
+    std::vector<MatchingOrderBookListImpl::Level> snapshot;
     snapshot.reserve(levels);
 
     std::size_t count{};
@@ -333,10 +333,10 @@ inline std::vector<MatchingOrderBookNaive::Level> MatchingOrderBookNaive::bids(s
     return snapshot;
 }
 
-inline std::vector<MatchingOrderBookNaive::Level> MatchingOrderBookNaive::asks(std::size_t depth) const noexcept {
+inline std::vector<MatchingOrderBookListImpl::Level> MatchingOrderBookListImpl::asks(std::size_t depth) const noexcept {
     std::size_t levels = std::min(depth, asks_.size());
     
-    std::vector<MatchingOrderBookNaive::Level> snapshot;
+    std::vector<MatchingOrderBookListImpl::Level> snapshot;
     snapshot.reserve(levels);
 
     std::size_t count{};
@@ -353,7 +353,7 @@ inline std::vector<MatchingOrderBookNaive::Level> MatchingOrderBookNaive::asks(s
     return snapshot;
 }
 
-inline Quantity MatchingOrderBookNaive::bidSizeAt(Price price) const noexcept {
+inline Quantity MatchingOrderBookListImpl::bidSizeAt(Price price) const noexcept {
     auto it = bids_.find(price);
 
     if(it == bids_.end())
@@ -362,7 +362,7 @@ inline Quantity MatchingOrderBookNaive::bidSizeAt(Price price) const noexcept {
     return it->second.liquidity;
 }
 
-inline Quantity MatchingOrderBookNaive::askSizeAt(Price price) const noexcept {
+inline Quantity MatchingOrderBookListImpl::askSizeAt(Price price) const noexcept {
     auto it = asks_.find(price);
 
     if(it == asks_.end())

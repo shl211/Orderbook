@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
-#include "matching/orderbook_naive.hpp"
+#include "matching/orderbook_list.hpp"
 #include "matching/orderbook_vector.hpp"
 
 namespace ob = shl211::ob;
 
 using OrderBookImplementations = ::testing::Types<
-    ob::MatchingOrderBookNaive,
-    ob::MatchingOrderBookVector
+    ob::MatchingOrderBookListImpl,
+    ob::MatchingOrderBookVectorImpl
 >;
 
 template <ob::MatchingOrderBook T>

@@ -13,7 +13,7 @@
 
 namespace shl211::ob {
 
-class MatchingOrderBookVector {
+class MatchingOrderBookVectorImpl {
 public:
     [[nodiscard]] AddResult add(Order order) noexcept;
     [[nodiscard]] bool cancel(OrderId id) noexcept;
@@ -64,12 +64,12 @@ private:
     [[nodiscard]] bool canMatch(const Order& order) const noexcept;
 };
 
-static_assert(MatchingOrderBook<MatchingOrderBookVector>);
+static_assert(MatchingOrderBook<MatchingOrderBookVectorImpl>);
 
 /* -------------------------------------------------------------- */
 /*  IMPLEMENTATION  */
 
-bool MatchingOrderBookVector::canMatch(const Order& order) const noexcept {
+bool MatchingOrderBookVectorImpl::canMatch(const Order& order) const noexcept {
     const Price orderPrice = detail::processOrderPrice(order);
     const Quantity orderSize = order.getRemainingQuantity();
     const TimeInForce orderTif = order.getTimeInForce();
@@ -118,7 +118,7 @@ bool MatchingOrderBookVector::canMatch(const Order& order) const noexcept {
     return false;
 }
 
-inline MatchingOrderBookVector::MatchResult MatchingOrderBookVector::match(const Order& order) noexcept {
+inline MatchingOrderBookVectorImpl::MatchResult MatchingOrderBookVectorImpl::match(const Order& order) noexcept {
     const Side side = order.getSide();
     const Price price = detail::processOrderPrice(order);
     const OrderId id = order.getOrderId();
@@ -201,7 +201,7 @@ inline MatchingOrderBookVector::MatchResult MatchingOrderBookVector::match(const
     Order remainingOrder{ order };
     remainingOrder.applyFill(filledQty);
 
-    return MatchingOrderBookVector::MatchResult{
+    return MatchingOrderBookVectorImpl::MatchResult{
         .matches = std::move(matches),
         .filledAmount = filledQty,
         .remainingOrder = std::move(remainingOrder)
@@ -209,7 +209,7 @@ inline MatchingOrderBookVector::MatchResult MatchingOrderBookVector::match(const
 }
 
 
-inline AddResult MatchingOrderBookVector::add(Order order) noexcept {
+inline AddResult MatchingOrderBookVectorImpl::add(Order order) noexcept {
     AddResult result;
 
     if(canMatch(order)) {
@@ -265,14 +265,14 @@ inline AddResult MatchingOrderBookVector::add(Order order) noexcept {
             }
         }
 
-        idToLocation_.insert_or_assign(id, MatchingOrderBookVector::OrderLocation{price, side});
+        idToLocation_.insert_or_assign(id, MatchingOrderBookVectorImpl::OrderLocation{price, side});
         result.remaining = id;
     }
 
     return result;
 }
 
-inline bool MatchingOrderBookVector::cancel(OrderId id) noexcept {
+inline bool MatchingOrderBookVectorImpl::cancel(OrderId id) noexcept {
     auto itMap = idToLocation_.find(id);
     if(itMap == idToLocation_.end())
         return false;
@@ -308,7 +308,7 @@ inline bool MatchingOrderBookVector::cancel(OrderId id) noexcept {
     return false;
 }
 
-inline bool MatchingOrderBookVector::modify(OrderId id, Quantity newQty) noexcept {
+inline bool MatchingOrderBookVectorImpl::modify(OrderId id, Quantity newQty) noexcept {
     auto itMap = idToLocation_.find(id);
         if (itMap == idToLocation_.end()) return false;
 
@@ -331,7 +331,7 @@ inline bool MatchingOrderBookVector::modify(OrderId id, Quantity newQty) noexcep
         return false;
 }
 
-inline bool MatchingOrderBookVector::modify(OrderId id, Quantity newQty, Price newPrice) noexcept {
+inline bool MatchingOrderBookVectorImpl::modify(OrderId id, Quantity newQty, Price newPrice) noexcept {
     auto itMap = idToLocation_.find(id);
     if (itMap == idToLocation_.end()) return false;
 
@@ -353,15 +353,15 @@ inline bool MatchingOrderBookVector::modify(OrderId id, Quantity newQty, Price n
     return false;
 }
 
-inline std::optional<Price> MatchingOrderBookVector::bestBid() const noexcept {
+inline std::optional<Price> MatchingOrderBookVectorImpl::bestBid() const noexcept {
     return bids_.empty() ? std::nullopt : std::make_optional(bids_.front().price); 
 }
 
-inline std::optional<Price> MatchingOrderBookVector::bestAsk() const noexcept {
+inline std::optional<Price> MatchingOrderBookVectorImpl::bestAsk() const noexcept {
     return asks_.empty() ? std::nullopt : std::make_optional(asks_.front().price);
 }
 
-inline Quantity MatchingOrderBookVector::bidSizeAt(Price price) const noexcept {
+inline Quantity MatchingOrderBookVectorImpl::bidSizeAt(Price price) const noexcept {
     auto levelIt = std::lower_bound(bids_.cbegin(), bids_.cend(), price,
         [](const LevelInternal& level, Price val) {
             return level.price > val;
@@ -375,7 +375,7 @@ inline Quantity MatchingOrderBookVector::bidSizeAt(Price price) const noexcept {
     return Quantity{ 0 };
 }
 
-inline Quantity MatchingOrderBookVector::askSizeAt(Price price) const noexcept {
+inline Quantity MatchingOrderBookVectorImpl::askSizeAt(Price price) const noexcept {
     auto levelIt = std::lower_bound(asks_.cbegin(), asks_.cend(), price,
         [](const LevelInternal& level, Price val) {
             return level.price < val;
@@ -389,14 +389,14 @@ inline Quantity MatchingOrderBookVector::askSizeAt(Price price) const noexcept {
     return Quantity{ 0 };
 }
 
-inline bool MatchingOrderBookVector::empty() const noexcept {
+inline bool MatchingOrderBookVectorImpl::empty() const noexcept {
     return idToLocation_.empty();
 }
 
-inline std::vector<MatchingOrderBookVector::Level> MatchingOrderBookVector::bids(std::size_t depth) const noexcept {
+inline std::vector<MatchingOrderBookVectorImpl::Level> MatchingOrderBookVectorImpl::bids(std::size_t depth) const noexcept {
     std::size_t levels = std::min(depth, bids_.size());
     
-    std::vector<MatchingOrderBookVector::Level> snapshot;
+    std::vector<MatchingOrderBookVectorImpl::Level> snapshot;
     snapshot.reserve(levels);
 
     std::size_t count{};
@@ -413,10 +413,10 @@ inline std::vector<MatchingOrderBookVector::Level> MatchingOrderBookVector::bids
     return snapshot;
 }
 
-inline std::vector<MatchingOrderBookVector::Level> MatchingOrderBookVector::asks(std::size_t depth) const noexcept {
+inline std::vector<MatchingOrderBookVectorImpl::Level> MatchingOrderBookVectorImpl::asks(std::size_t depth) const noexcept {
     std::size_t levels = std::min(depth, asks_.size());
     
-    std::vector<MatchingOrderBookVector::Level> snapshot;
+    std::vector<MatchingOrderBookVectorImpl::Level> snapshot;
     snapshot.reserve(levels);
 
     std::size_t count{};
