@@ -24,6 +24,11 @@ struct AddResult {
     std::optional<OrderId> remaining;
 };
 
+struct PriceLevelSummary {
+    Price price; 
+    Quantity quantity; 
+};
+
 }
 
 

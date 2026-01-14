@@ -31,13 +31,8 @@ public:
 
     [[nodiscard]] bool empty() const noexcept;
 
-    struct Level { 
-        Price price; 
-        Quantity quantity; 
-    };
-
-    [[nodiscard]] std::vector<Level> bids(std::size_t depth) const noexcept;
-    [[nodiscard]] std::vector<Level> asks(std::size_t depth) const noexcept;
+    [[nodiscard]] std::vector<PriceLevelSummary> bids(std::size_t depth) const noexcept;
+    [[nodiscard]] std::vector<PriceLevelSummary> asks(std::size_t depth) const noexcept;
 
 private:
     using PriceLevel = std::list<Order>;
@@ -313,10 +308,10 @@ inline bool MatchingOrderBookListImpl::empty() const noexcept {
     return orderLocation_.empty();
 }
 
-inline std::vector<MatchingOrderBookListImpl::Level> MatchingOrderBookListImpl::bids(std::size_t depth) const noexcept {
+inline std::vector<PriceLevelSummary> MatchingOrderBookListImpl::bids(std::size_t depth) const noexcept {
     std::size_t levels = std::min(depth, bids_.size());
     
-    std::vector<MatchingOrderBookListImpl::Level> snapshot;
+    std::vector<PriceLevelSummary> snapshot;
     snapshot.reserve(levels);
 
     std::size_t count{};
@@ -333,10 +328,10 @@ inline std::vector<MatchingOrderBookListImpl::Level> MatchingOrderBookListImpl::
     return snapshot;
 }
 
-inline std::vector<MatchingOrderBookListImpl::Level> MatchingOrderBookListImpl::asks(std::size_t depth) const noexcept {
+inline std::vector<PriceLevelSummary> MatchingOrderBookListImpl::asks(std::size_t depth) const noexcept {
     std::size_t levels = std::min(depth, asks_.size());
     
-    std::vector<MatchingOrderBookListImpl::Level> snapshot;
+    std::vector<PriceLevelSummary> snapshot;
     snapshot.reserve(levels);
 
     std::size_t count{};
