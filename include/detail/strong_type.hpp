@@ -24,6 +24,7 @@ public:
     using This = StrongType<T, Tag, Mixins...>;
     using UnderlyingType = T;
 
+    constexpr StrongType() noexcept : value_{} {}
     constexpr explicit StrongType(T v) noexcept : value_(v) {}
     constexpr explicit operator T() const noexcept { return value_; }
     [[nodiscard]] T get() const noexcept { return value_; }

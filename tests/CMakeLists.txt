@@ -1,7 +1,8 @@
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS 
     *.cpp
-    matching/*.cpp    
     detail/*.cpp    
+    matching/*.cpp    
+    shadow/*.cpp    
 )
 add_executable(tests ${TEST_SOURCES})
 

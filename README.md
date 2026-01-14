@@ -1,6 +1,6 @@
 # Orderbook Implementations
 
-I try different implementations of an L3 orderbook.
+I try different implementations of an L3 matching orderbook. I also implement some L2 orderbooks for tracking orders from an exchange.
 
 To build the project, need CMake >= 3.30 and C++20:
 
