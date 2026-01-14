@@ -10,6 +10,7 @@
 #include "order.hpp"
 #include "matching/orderbook_concept.hpp"
 #include "detail/matching_orderbook_utils.hpp"
+#include "detail/lazy_pop_front_vector.hpp"
 
 namespace shl211::ob {
 
@@ -47,10 +48,10 @@ private:
     struct LevelInternal {
         Price price;
         Quantity totalQuantity;
-        std::vector<Order> orders; //assume sorted
+        detail::LazyPopFrontVector<Order> orders; //assume sorted
     };
 
-    //assume sorted with best at front
+    //assume sorted with best at back
     std::vector<LevelInternal> bids_;
     std::vector<LevelInternal> asks_;
 
@@ -89,25 +90,26 @@ bool MatchingOrderBookVectorImpl::canMatch(const Order& order) const noexcept {
 
     if(requiresFullMatch) {
         if(side == Side::Buy) {
-            auto it = std::upper_bound(asks_.begin(), asks_.end(), orderPrice, 
-                [](Price p, const LevelInternal& l) {
-                    return p < l.price;
-            });
-
-            const Quantity liquidity = std::accumulate(asks_.begin(), it, Quantity{0},
+            auto rit = std::partition_point(asks_.rbegin(), asks_.rend(),
+                [orderPrice](const LevelInternal& l) {
+                    return l.price <= orderPrice;
+                }
+            );
+            
+            const Quantity liquidity = std::accumulate(asks_.rbegin(), rit, Quantity{0},
                 [](Quantity sum, const auto& level) { return sum + level.totalQuantity; }
             );
 
             return liquidity >= orderSize;
         }
         else {
-            auto it = std::partition_point(bids_.begin(), bids_.end(), 
+            auto rit = std::partition_point(bids_.rbegin(), bids_.rend(), 
                 [orderPrice](const LevelInternal& l) {
                     return l.price >= orderPrice; 
                 }
             );
 
-            const Quantity liquidity = std::accumulate(bids_.begin(), it, Quantity{0},
+            const Quantity liquidity = std::accumulate(bids_.rbegin(), rit, Quantity{0},
                 [](Quantity sum, const auto& level) { return sum + level.totalQuantity; }
             );
 
@@ -131,69 +133,81 @@ inline MatchingOrderBookVectorImpl::MatchResult MatchingOrderBookVectorImpl::mat
         while(bestAskPriceOpt.has_value() && 
             price >= bestAskPriceOpt.value() && remainingQtyToFill > Quantity{ 0 }
         ) {
-            const Price matchPrice = bestAskPriceOpt.value();
-            LevelInternal& level = asks_.front();
-            Order& matchingOrder = level.orders.front();
-            if(matchingOrder.isFilled()) { //indicates a lazy delete, delete
-                level.orders.erase(level.orders.begin());
-                if(level.totalQuantity == Quantity{ 0 }) {
-                    asks_.erase(asks_.begin());
-                }
+            LevelInternal& level = asks_.back();
+
+            while(!level.orders.empty() && level.orders.front().isFilled()) {
+                idToLocation_.erase(level.orders.front().getOrderId());
+                level.orders.pop_front();
+            }
+
+            if(level.orders.empty()) {
+                asks_.pop_back();
+                bestAskPriceOpt = bestAsk();
                 continue;
             }
-            
+
+            //front() is guaranteed valid at this point
+            Order& matchingOrder = level.orders.front();
             const Quantity matchedQty = matchingOrder.applyFill(remainingQtyToFill);
             remainingQtyToFill -= matchedQty;
             level.totalQuantity -= matchedQty;
-            matches.emplace_back(matchingOrder.getOrderId(), matchedQty, matchPrice);
+
+            matches.emplace_back(
+                matchingOrder.getOrderId(),
+                matchedQty,
+                level.price
+            );
 
             if(matchingOrder.isFilled()) {
-                const OrderId filledId = matchingOrder.getOrderId();
-                level.orders.erase(level.orders.begin());
-                idToLocation_.erase(filledId);
-
-                if (level.totalQuantity == Quantity{ 0 }) {
-                    asks_.erase(asks_.begin());
-                }
+                idToLocation_.erase(matchingOrder.getOrderId());
+                level.orders.pop_front();
             }
 
-            //set up next loop
-            bestAskPriceOpt = bestAsk();
+            if(level.totalQuantity == Quantity{ 0 }) {
+                asks_.pop_back();
+                bestAskPriceOpt = bestAsk();
+            }
         }
     }
     else {
         auto bestBidPriceOpt = bestBid();
-        while(bestBidPriceOpt.has_value() && 
-            bestBidPriceOpt.value() >= price  && remainingQtyToFill > Quantity{ 0 }
+        while(bestBidPriceOpt.has_value() &&
+            bestBidPriceOpt.value() >= price && remainingQtyToFill > Quantity{ 0 }
         ) {
-            const Price matchPrice = bestBidPriceOpt.value();
-            LevelInternal& level = bids_.front(); 
-            Order& matchingOrder = level.orders.front();
-            if(matchingOrder.isFilled()) { //indicates a lazy delete, delete
-                level.orders.erase(level.orders.begin());
-                if(level.totalQuantity == Quantity{ 0 }) {
-                    bids_.erase(bids_.begin());
-                }
+            LevelInternal& level = bids_.back();
+
+            while(!level.orders.empty() && level.orders.front().isFilled()) {
+                idToLocation_.erase(level.orders.front().getOrderId());
+                level.orders.pop_front();
+            }
+
+            if(level.orders.empty()) {
+                bids_.pop_back();
+                bestBidPriceOpt = bestBid();
                 continue;
             }
-            
+
+            //front() is guaranteed valid at this point
+            Order& matchingOrder = level.orders.front();
             const Quantity matchedQty = matchingOrder.applyFill(remainingQtyToFill);
             remainingQtyToFill -= matchedQty;
             level.totalQuantity -= matchedQty;
-            matches.emplace_back(matchingOrder.getOrderId(), matchedQty, matchPrice);
+
+            matches.emplace_back(
+                matchingOrder.getOrderId(),
+                matchedQty,
+                level.price
+            );
 
             if(matchingOrder.isFilled()) {
-                const OrderId filledId = matchingOrder.getOrderId();
-                level.orders.erase(level.orders.begin());
-                idToLocation_.erase(filledId);
-
-                if (level.totalQuantity == Quantity{ 0 }) {
-                    bids_.erase(bids_.begin());
-                }
+                idToLocation_.erase(matchingOrder.getOrderId());
+                level.orders.pop_front();
             }
 
-            //set up next loop
-            bestBidPriceOpt = bestBid();
+            if(level.totalQuantity == Quantity{ 0 }) {
+                bids_.pop_back();
+                bestBidPriceOpt = bestBid();
+            }
         }
     }
 
@@ -207,7 +221,6 @@ inline MatchingOrderBookVectorImpl::MatchResult MatchingOrderBookVectorImpl::mat
         .remainingOrder = std::move(remainingOrder)
     };
 }
-
 
 inline AddResult MatchingOrderBookVectorImpl::add(Order order) noexcept {
     AddResult result;
@@ -227,7 +240,7 @@ inline AddResult MatchingOrderBookVectorImpl::add(Order order) noexcept {
         if(side == Side::Buy) {
             auto levelIt = std::lower_bound(bids_.begin(), bids_.end(), price,
                 [](const LevelInternal& level, Price val) {
-                    return level.price > val;
+                    return level.price < val;
                 }
             );
 
@@ -248,7 +261,7 @@ inline AddResult MatchingOrderBookVectorImpl::add(Order order) noexcept {
         else {
             auto levelIt = std::lower_bound(asks_.begin(), asks_.end(), price, 
                 [](const LevelInternal& level, Price price) {
-                    return level.price < price;
+                    return level.price > price;
                 }
             );
 
@@ -284,7 +297,7 @@ inline bool MatchingOrderBookVectorImpl::cancel(OrderId id) noexcept {
 
     auto levelIt = std::lower_bound(levels.begin(), levels.end(), price, 
         [side](const LevelInternal& l, Price p) {
-            return (side == Side::Buy) ? l.price > p : l.price < p;
+            return l.price > p;
     });
 
     if (levelIt != levels.end() && levelIt->price == price) {
@@ -354,11 +367,11 @@ inline bool MatchingOrderBookVectorImpl::modify(OrderId id, Quantity newQty, Pri
 }
 
 inline std::optional<Price> MatchingOrderBookVectorImpl::bestBid() const noexcept {
-    return bids_.empty() ? std::nullopt : std::make_optional(bids_.front().price); 
+    return bids_.empty() ? std::nullopt : std::make_optional(bids_.back().price); 
 }
 
 inline std::optional<Price> MatchingOrderBookVectorImpl::bestAsk() const noexcept {
-    return asks_.empty() ? std::nullopt : std::make_optional(asks_.front().price);
+    return asks_.empty() ? std::nullopt : std::make_optional(asks_.back().price);
 }
 
 inline Quantity MatchingOrderBookVectorImpl::bidSizeAt(Price price) const noexcept {
@@ -378,7 +391,7 @@ inline Quantity MatchingOrderBookVectorImpl::bidSizeAt(Price price) const noexce
 inline Quantity MatchingOrderBookVectorImpl::askSizeAt(Price price) const noexcept {
     auto levelIt = std::lower_bound(asks_.cbegin(), asks_.cend(), price,
         [](const LevelInternal& level, Price val) {
-            return level.price < val;
+            return level.price > val;
         }
     );
 
@@ -400,7 +413,7 @@ inline std::vector<MatchingOrderBookVectorImpl::Level> MatchingOrderBookVectorIm
     snapshot.reserve(levels);
 
     std::size_t count{};
-    for(auto it = bids_.begin(), end = bids_.end();
+    for(auto it = bids_.rbegin(), end = bids_.rend();
             it != end && count < levels; ++it)
     {
         const Price price = it->price;
@@ -420,7 +433,7 @@ inline std::vector<MatchingOrderBookVectorImpl::Level> MatchingOrderBookVectorIm
     snapshot.reserve(levels);
 
     std::size_t count{};
-    for(auto it = asks_.begin(), end = asks_.end();
+    for(auto it = asks_.rbegin(), end = asks_.rend();
             it != end && count < levels; ++it)
     {
         const Price price = it->price;
@@ -432,7 +445,6 @@ inline std::vector<MatchingOrderBookVectorImpl::Level> MatchingOrderBookVectorIm
 
     return snapshot;
 }
-
 
 }
 
