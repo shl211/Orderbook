@@ -62,6 +62,17 @@ public:
         return Order{id, side, OrderType::Market, tif, std::nullopt, qty};
     }
 
+    Order(OrderId id, Side side, OrderType type, TimeInForce tif, std::optional<Price> price, Quantity quantity)
+        : id_( id ),
+        side_( side ),
+        type_( type ),
+        tif_( tif ),
+        price_( price ),
+        initial_( quantity ),
+        remaining_( quantity )
+            {}
+
+
     [[nodiscard]] OrderId getOrderId() const noexcept { return id_; }
     [[nodiscard]] OrderType getOrderType() const noexcept { return type_; }
     [[nodiscard]] TimeInForce getTimeInForce() const noexcept { return tif_; }
@@ -83,16 +94,6 @@ public:
     void changeQuantity(Quantity newQty) noexcept { remaining_ = newQty; }
 
 private:
-    Order(OrderId id, Side side, OrderType type, TimeInForce tif, std::optional<Price> price, Quantity quantity)
-        : id_( id ),
-        side_( side ),
-        type_( type ),
-        tif_( tif ),
-        price_( price ),
-        initial_( quantity ),
-        remaining_( quantity )
-            {}
-
     OrderId id_;
     Side side_;
     OrderType type_;
