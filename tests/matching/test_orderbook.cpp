@@ -2,12 +2,14 @@
 
 #include "matching/orderbook_list.hpp"
 #include "matching/orderbook_vector.hpp"
+#include "matching/orderbook_intrusive_list.hpp"
 
 namespace ob = shl211::ob;
 
 using OrderBookImplementations = ::testing::Types<
     ob::MatchingOrderBookListImpl,
-    ob::MatchingOrderBookVectorImpl
+    ob::MatchingOrderBookVectorImpl,
+    ob::MatchingOrderBookIntrusiveListImpl
 >;
 
 template <ob::MatchingOrderBook T>
@@ -300,11 +302,11 @@ TYPED_TEST(OrderBookTest, LimitOrderConsumeAndAdd) {
     EXPECT_EQ(res.matches[0].executionPrice, ob::Price{ 100 });
     EXPECT_EQ(res.matches[0].matched, ob::Quantity{ 50 });
     EXPECT_EQ(res.matches[0].restingOrderId, ob::OrderId{ 1 });
-    ASSERT_TRUE(res.remaining.has_value());
+    EXPECT_TRUE(res.remaining.has_value());
     EXPECT_EQ(res.remaining.value(), ob::OrderId{ 2 });
 
     auto bidsRestingOnBook = this->book.bids(1);
-    ASSERT_TRUE(bidsRestingOnBook.empty());
+    EXPECT_TRUE(bidsRestingOnBook.empty());
     auto asksRestingOnBook = this->book.asks(1);
     EXPECT_EQ(asksRestingOnBook.size(), 1);
     EXPECT_EQ(asksRestingOnBook[0].price, ob::Price{ 100 });
@@ -334,7 +336,7 @@ TYPED_TEST(OrderBookTest, MarketOrderIocConsumeMoreThanAvailable) {
     EXPECT_EQ(res.matches[0].restingOrderId, ob::OrderId{ 1 });
     EXPECT_FALSE(res.remaining.has_value());
 
-    ASSERT_TRUE(this->book.empty());
+    EXPECT_TRUE(this->book.empty());
 }
 
 TYPED_TEST(OrderBookTest, MarketOrderFOKInsufficientVolume) {
@@ -354,7 +356,7 @@ TYPED_TEST(OrderBookTest, MarketOrderFOKInsufficientVolume) {
         ob::TimeInForce::FOK
     ));
 
-    ASSERT_TRUE(res.matches.empty());
+    EXPECT_TRUE(res.matches.empty());
 
     EXPECT_EQ(this->book.bestAsk().value(), ob::Price{ 100 });
     EXPECT_EQ(this->book.askSizeAt(ob::Price{ 100 }), ob::Quantity{ 50 });
@@ -387,7 +389,7 @@ TYPED_TEST(OrderBookTest, MarketOrderNoLiquidity) {
         ob::Quantity{ 50 },
         ob::TimeInForce::IOC
     ));
-    ASSERT_TRUE(res.matches.empty());
+    EXPECT_TRUE(res.matches.empty());
     EXPECT_FALSE(res.remaining.has_value());
 }
 
@@ -408,5 +410,5 @@ TYPED_TEST(OrderBookTest, MarketFOKExactLiquidity) {
 
     EXPECT_EQ(res.matches.size(), 1);
     EXPECT_FALSE(res.remaining.has_value());
-    ASSERT_TRUE(this->book.empty());
+    EXPECT_TRUE(this->book.empty());
 }

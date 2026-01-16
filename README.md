@@ -16,7 +16,7 @@ To compile with performance benchmarks, the flag `-DBUILD_BENCH=ON` can be used.
 
 ```sh
 ./benchmark/bench_orderbook
-python3 ../benchmark/analyse.py LATENCY_LIST_IMPL.csv LATENCY_VECTOR_IMPL.csv
+python3 ../benchmark/analyse.py LATENCY_LIST_IMPL.csv LATENCY_VECTOR_IMPL.csv LATENCY_INTRUSIVE_LIST_IMPL.csv
 ```
 
 Note that for the Python you may also need the following libraries:

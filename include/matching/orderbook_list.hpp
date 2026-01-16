@@ -90,14 +90,14 @@ inline bool MatchingOrderBookListImpl::canMatch(const Order& order) const noexce
 
     if(requiresFullMatch) {
         if(side == Side::Buy) {
-            auto it = asks_.upper_bound(orderPrice);
+            auto it = asks_.lower_bound(orderPrice);
             const Quantity liquidity = std::accumulate(asks_.begin(), it, Quantity{0},
             [](Quantity sum, const auto& level) { return sum + level.second.liquidity; });
 
             return liquidity >= orderSize;
         }
         else {
-            auto it = bids_.upper_bound(orderPrice);
+            auto it = bids_.lower_bound(orderPrice);
             const Quantity liquidity = std::accumulate(bids_.begin(), it, Quantity{0},
             [](Quantity sum, const auto& level) { return sum + level.second.liquidity; });
     

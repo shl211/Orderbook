@@ -6,6 +6,7 @@
 #include "order.hpp"
 #include "matching/orderbook_list.hpp"
 #include "matching/orderbook_vector.hpp"
+#include "matching/orderbook_intrusive_list.hpp"
 
 namespace ob = shl211::ob;
 namespace bench = shl211::bench;
@@ -32,5 +33,14 @@ int main() {
         benchmark2.run(book2, gen);
         benchmark2.report();
         benchmark2.exportCsv("LATENCY_VECTOR_IMPL.csv");
+    }
+
+    {
+        ob::MatchingOrderBookIntrusiveListImpl book3{};
+        bench::OrderBookBenchmark<ob::MatchingOrderBookIntrusiveListImpl> benchmark3{WARMUP_ITERATIONS, PERF_ITERATIONS};
+        std::cout << "INTRUSIVE LIST IMPL\n";
+        benchmark3.run(book3, gen);
+        benchmark3.report();
+        benchmark3.exportCsv("LATENCY_INTRUSIVE_LIST_IMPL.csv");
     }
 }
