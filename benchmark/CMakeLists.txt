@@ -9,5 +9,6 @@ target_include_directories(bench_orderbook
 
 target_link_libraries(bench_orderbook
     PRIVATE
+        cxxopts
         orderbook-lib
 )

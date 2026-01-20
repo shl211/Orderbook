@@ -13,12 +13,12 @@ struct AddCancelGenerator {
     ob::OrderId nextId{1};
     std::vector<ob::OrderId> live;
 
-    int cancelProb = 30;
-    int bidProb    = 50;
-    int minPrice   = 95;
-    int maxPrice   = 105;
-    int minQty     = 1;
-    int maxQty     = 10'000;
+    const int cancelProb = 30;
+    const int bidProb    = 50;
+    const int minPrice   = 95;
+    const int maxPrice   = 105;
+    const int minQty     = 1;
+    const int maxQty     = 10'000;
 
     AddCancelGenerator() {
         std::srand(static_cast<unsigned>(std::time(nullptr)));

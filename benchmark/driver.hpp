@@ -49,14 +49,16 @@ public:
         }
     }
 
-    void report() {
+    void report(bool printOutput = true) {
         auto p = computePercentiles(latencies_);
 
-        std::cout << std::format("p50: {} ns\n", p.p50);
-        std::cout << std::format("p90: {} ns\n", p.p90);
-        std::cout << std::format("p99: {} ns\n", p.p99);
-        std::cout << std::format("p999: {} ns\n", p.p999);
-        std::cout << std::format("max: {} ns\n", p.max);
+        if(printOutput) {
+            std::cout << std::format("p50: {} ns\n", p.p50);
+            std::cout << std::format("p90: {} ns\n", p.p90);
+            std::cout << std::format("p99: {} ns\n", p.p99);
+            std::cout << std::format("p999: {} ns\n", p.p999);
+            std::cout << std::format("max: {} ns\n", p.max);
+        }
     }
 
     void exportCsv(const std::string& filename) const {
