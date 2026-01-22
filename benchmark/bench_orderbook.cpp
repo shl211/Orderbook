@@ -24,6 +24,8 @@ int main(int argc, char** argv) {
             cxxopts::value<bool>()->default_value("false"))
         ("i,impl", "Implementation to benchmark: list|vector|intrusive|all", 
             cxxopts::value<std::string>()->default_value("all"))
+        ("m,measurement", "Measuring with: timer|cycles",
+            cxxopts::value<std::string>()->default_value("cycles"))
         ("h,help", "Print usage");
     
     auto result = options.parse(argc, argv);
@@ -40,17 +42,21 @@ int main(int argc, char** argv) {
     const bool IS_VERBOSE_OUT = result["verbose"].as<bool>();
 
     const std::string impl = result["impl"].as<std::string>();
-    auto runList = 
+    const auto runList = 
         impl == "list" || impl == "all";
-    auto runVector = 
+    const auto runVector = 
         impl == "vector" || impl == "all";
-    auto runIntrusive = 
+    const auto runIntrusive = 
         impl == "intrusive" || impl == "all";
 
-    if(runList)
+    const std::string measurement = result["measurement"].as<std::string>();
+    const bench::DriverTimer measureType = measurement == "cycles" ? 
+        bench::DriverTimer::CyclesCpu : bench::DriverTimer::SteadyClock;
+
+        if(runList)
     {
         ob::MatchingOrderBookListImpl book{};
-        bench::OrderBookBenchmark<ob::MatchingOrderBookListImpl> benchmark{WARMUP_ITERATIONS, PERF_ITERATIONS};
+        bench::OrderBookBenchmark<ob::MatchingOrderBookListImpl> benchmark{WARMUP_ITERATIONS, PERF_ITERATIONS, measureType};
     
         std::cout << "LIST IMPL\n";
         benchmark.run(book, gen);
@@ -62,7 +68,7 @@ int main(int argc, char** argv) {
     if(runVector)
     {
         ob::MatchingOrderBookVectorImpl book2{};
-        bench::OrderBookBenchmark<ob::MatchingOrderBookVectorImpl> benchmark2{WARMUP_ITERATIONS, PERF_ITERATIONS};
+        bench::OrderBookBenchmark<ob::MatchingOrderBookVectorImpl> benchmark2{WARMUP_ITERATIONS, PERF_ITERATIONS, measureType};
         std::cout << "VECTOR IMPL\n";
         benchmark2.run(book2, gen);
         benchmark2.report(IS_VERBOSE_OUT);
@@ -73,7 +79,7 @@ int main(int argc, char** argv) {
     if(runIntrusive)
     {
         ob::MatchingOrderBookIntrusiveListImpl book3{};
-        bench::OrderBookBenchmark<ob::MatchingOrderBookIntrusiveListImpl> benchmark3{WARMUP_ITERATIONS, PERF_ITERATIONS};
+        bench::OrderBookBenchmark<ob::MatchingOrderBookIntrusiveListImpl> benchmark3{WARMUP_ITERATIONS, PERF_ITERATIONS, measureType};
         std::cout << "INTRUSIVE LIST IMPL\n";
         benchmark3.run(book3, gen);
         benchmark3.report(IS_VERBOSE_OUT);
