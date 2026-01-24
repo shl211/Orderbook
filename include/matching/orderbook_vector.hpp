@@ -32,6 +32,8 @@ public:
     [[nodiscard]] std::vector<PriceLevelSummary> bids(std::size_t depth) const noexcept;
     [[nodiscard]] std::vector<PriceLevelSummary> asks(std::size_t depth) const noexcept;
 
+    void dump(std::ostream& os, std::size_t depth) const;
+
 private:
     struct OrderLocation {
         Price price;
@@ -441,7 +443,97 @@ inline std::vector<PriceLevelSummary> MatchingOrderBookVectorImpl::asks(std::siz
     return snapshot;
 }
 
+inline void MatchingOrderBookVectorImpl::dump(
+    std::ostream& os,
+    std::size_t depth
+) const {
+    os << "================ ORDER BOOK DUMP (VECTOR) ================\n";
+
+    /* ---------------- ASKS ---------------- */
+    os << "ASKS:\n";
+
+    std::size_t askLevels = 0;
+    for (auto it = asks_.rbegin();
+         it != asks_.rend() && askLevels < depth;
+         ++it, ++askLevels)
+    {
+        const LevelInternal& level = *it;
+
+        os << "  " << level.price.get()
+           << " | totalQty=" << level.totalQuantity.get()
+           << " | orders: ";
+
+        Quantity summedQty{0};
+        std::size_t deadCount = 0;
+
+        for (const Order& o : level.orders) {
+            const Quantity q = o.getRemainingQuantity();
+
+            if (q == Quantity{0}) {
+                os << "[X id=" << o.getOrderId().get() << "] ";
+                ++deadCount;
+            } else {
+                os << "[id=" << o.getOrderId().get()
+                   << ", qty=" << q.get() << "] ";
+                summedQty += q;
+            }
+        }
+
+        if (summedQty != level.totalQuantity) {
+            os << " !!! QTY MISMATCH (sum=" << summedQty.get() << ")";
+        }
+
+        if (deadCount > 0) {
+            os << " (lazy-dead=" << deadCount << ")";
+        }
+
+        os << "\n";
+    }
+
+    /* ---------------- BIDS ---------------- */
+    os << "BIDS:\n";
+
+    std::size_t bidLevels = 0;
+    for (auto it = bids_.rbegin();
+         it != bids_.rend() && bidLevels < depth;
+         ++it, ++bidLevels)
+    {
+        const LevelInternal& level = *it;
+
+        os << "  " << level.price.get()
+           << " | totalQty=" << level.totalQuantity.get()
+           << " | orders: ";
+
+        Quantity summedQty{0};
+        std::size_t deadCount = 0;
+
+        for (const Order& o : level.orders) {
+            const Quantity q = o.getRemainingQuantity();
+
+            if (q == Quantity{0}) {
+                os << "[X id=" << o.getOrderId().get() << "] ";
+                ++deadCount;
+            } else {
+                os << "[id=" << o.getOrderId().get()
+                   << ", qty=" << q.get() << "] ";
+                summedQty += q;
+            }
+        }
+
+        if (summedQty != level.totalQuantity) {
+            os << " !!! QTY MISMATCH (sum=" << summedQty.get() << ")";
+        }
+
+        if (deadCount > 0) {
+            os << " (lazy-dead=" << deadCount << ")";
+        }
+
+        os << "\n";
+    }
+
+    os << "===========================================================\n";
 }
 
+}
 
 #endif

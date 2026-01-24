@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <limits>
 #include <numeric>
+#include <ostream>
 
 #include "order.hpp"
 #include "matching/orderbook_utils.hpp"
@@ -34,6 +35,7 @@ public:
     [[nodiscard]] std::vector<PriceLevelSummary> bids(std::size_t depth) const noexcept;
     [[nodiscard]] std::vector<PriceLevelSummary> asks(std::size_t depth) const noexcept;
 
+    void dump(std::ostream& os, std::size_t depth) const;
 private:
     using PriceLevel = std::list<Order>;
 
@@ -365,6 +367,30 @@ inline Quantity MatchingOrderBookListImpl::askSizeAt(Price price) const noexcept
 
     return it->second.liquidity;
 }
+
+inline void MatchingOrderBookListImpl::dump(std::ostream& os, std::size_t depth) const {
+    os << "===== ORDERBOOK SNAPSHOT =====\n";
+
+    os << "Asks:\n";
+    for (auto& [price, info] : asks_) {
+        os << "  " << price.get()
+            << " x " << info.liquidity.get()
+            << " (" << info.orderList.size() << " orders)\n";
+        if (--depth == 0) break;
+    }
+
+    os << "Bids:\n";
+    depth = 10;
+    for (auto& [price, info] : bids_) {
+        os << "  " << price.get()
+            << " x " << info.liquidity.get()
+            << " (" << info.orderList.size() << " orders)\n";
+        if (--depth == 0) break;
+    }
+
+    os << "==============================\n";
+}
+
 }
 
 #endif

@@ -39,6 +39,8 @@ public:
 
     auto begin() noexcept { return data_.begin() + frontIndex_; }
     auto end() noexcept{ return data_.end(); }
+    auto begin() const noexcept { return data_.begin() + frontIndex_; }
+    auto end() const noexcept{ return data_.end(); }
     auto cbegin() const noexcept { return data_.cbegin() + frontIndex_; }
     auto cend() const noexcept{ return data_.cend(); }
     auto rbegin() noexcept { return data_.rbegin() + frontIndex_; }

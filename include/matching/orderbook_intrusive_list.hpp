@@ -4,6 +4,7 @@
 #include <map>
 #include <unordered_map>
 #include <numeric>
+#include <ostream>
 
 #include "order_node.hpp"
 #include "matching/orderbook_concept.hpp"
@@ -38,6 +39,8 @@ public:
 
     [[nodiscard]] std::vector<PriceLevelSummary> bids(std::size_t depth) const noexcept;
     [[nodiscard]] std::vector<PriceLevelSummary> asks(std::size_t depth) const noexcept;
+
+    void dump(std::ostream& os, std::size_t depth) const;
 
 private:
     struct PriceLevelInfo {
@@ -421,6 +424,93 @@ inline std::vector<PriceLevelSummary> MatchingOrderBookIntrusiveListImpl::asks(s
     return snapshot;
 }
 
+inline void MatchingOrderBookIntrusiveListImpl::dump(
+    std::ostream& os,
+    std::size_t depth
+) const {
+    os << "================ ORDER BOOK DUMP ================\n";
+
+    /* ---------------- ASKS ---------------- */
+    os << "ASKS:\n";
+
+    std::size_t askLevels = 0;
+    for (auto it = asks_.begin();
+         it != asks_.end() && askLevels < depth;
+         ++it, ++askLevels)
+    {
+        const Price price = it->first;
+        const PriceLevelInfo& level = it->second;
+
+        os << "  " << price.get()
+           << " | liquidity=" << level.liquidity.get()
+           << " | orders: ";
+
+        Quantity summedQty{0};
+        std::size_t orderCount = 0;
+
+        for (OrderNode* node = level.orderHead; node; node = node->next) {
+            os << "[id=" << node->order.getOrderId().get()
+               << ", qty=" << node->order.getRemainingQuantity().get()
+               << "] ";
+
+            summedQty += node->order.getRemainingQuantity();
+            ++orderCount;
+
+            // Defensive: stop infinite loops if corrupted
+            if (orderCount > 100000) {
+                os << " <LOOP DETECTED> ";
+                break;
+            }
+        }
+
+        if (summedQty != level.liquidity) {
+            os << " !!! LIQUIDITY MISMATCH (sum=" << summedQty.get() << ")";
+        }
+
+        os << "\n";
+    }
+
+    /* ---------------- BIDS ---------------- */
+    os << "BIDS:\n";
+
+    std::size_t bidLevels = 0;
+    for (auto it = bids_.begin();
+         it != bids_.end() && bidLevels < depth;
+         ++it, ++bidLevels)
+    {
+        const Price price = it->first;
+        const PriceLevelInfo& level = it->second;
+
+        os << "  " << price.get()
+           << " | liquidity=" << level.liquidity.get()
+           << " | orders: ";
+
+        Quantity summedQty{0};
+        std::size_t orderCount = 0;
+
+        for (OrderNode* node = level.orderHead; node; node = node->next) {
+            os << "[id=" << node->order.getOrderId().get()
+               << ", qty=" << node->order.getRemainingQuantity().get()
+               << "] ";
+
+            summedQty += node->order.getRemainingQuantity();
+            ++orderCount;
+
+            if (orderCount > 100000) {
+                os << " <LOOP DETECTED> ";
+                break;
+            }
+        }
+
+        if (summedQty != level.liquidity) {
+            os << " !!! LIQUIDITY MISMATCH (sum=" << summedQty.get() << ")";
+        }
+
+        os << "\n";
+    }
+
+    os << "=================================================\n";
+}
 
 }
 
